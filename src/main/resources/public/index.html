@@ -1,0 +1,369 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="utf-8">
+    <title>Кто хочет стать миллионером???</title>
+    <script src="https://cdn.jsdelivr.net/npm/vue@2/dist/vue.js"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/materialize/1.0.0/css/materialize.min.css">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/materialize/1.0.0/js/materialize.min.js"></script>
+</head>
+<body>
+<div id="app">
+    <div v-if="user == null">
+        <h3>Добро пожаловать на игру "Кто хочет стать миллионером???"</h3>
+        <div class="row">
+            <form class="col s12">
+                <div class="row">
+                    <div class="input-field col s6">
+                        <input v-model="name" id="icon_prefix" type="text" class="validate">
+                        <label for="icon_prefix">Введите Ваше имя</label>
+                        <a v-on:click="login" class="waves-effect waves-light btn">Начать игру!</a>
+                    </div>
+                </div>
+            </form>
+        </div>
+    </div>
+    <div v-else>
+        <h1>Привет, {{user.userName}}! Игра началась!</h1>
+        <div v-if="user.guaranteeAmount == null">
+            <h3>Выберите несгораемую сумму</h3>
+            <div class="collection">
+                <a href="#!" class="collection-item"
+                   v-for="amount in amounts"
+                   @click="selectGuaranteeAmount(amount.id)"
+                >{{amount.value}}</a>
+            </div>
+        </div>
+        <div v-else-if="user.friends.length == 0 || friendForm.close == false">
+            <div v-for="friend in user.friends" class="card-stacked">
+                <div class="card-content">
+                    <h6>{{friend.name}}</h6>
+                    <p>{{friend.description}}</p>
+                    <p>Телефон: {{friend.phoneNumber}}</p>
+                </div>
+            </div>
+            <h3>Добавьте друзей для подсказки "Помощь друга"</h3>
+            <div class="input-field col s6">
+                <input v-model="friendForm.name" id="friend_form_name" type="text" class="validate">
+                <label for="friend_form_name">Введите имя</label>
+            </div>
+            <div class="input-field col s6">
+                <input v-model="friendForm.description" id="friend_form_description" type="text" class="validate">
+                <label for="friend_form_description">Введите описание</label>
+            </div>
+            <div class="input-field col s6">
+                <input v-model="friendForm.phoneNumber" id="icon_telephone" type="tel" class="validate">
+                <label for="icon_telephone">Телефон</label>
+            </div>
+            <a v-on:click="addFriend" class="waves-effect waves-light btn">Добавить</a>
+            <a v-if="user.friends.length != 0" v-on:click="endAddFriend" class="waves-effect waves-light btn">Достаточно</a>
+
+        </div>
+        <div v-else>
+            <div class="row">
+                <div class="col s9">
+                    <div>
+                        <div class="row">
+                            <div class="col s12">
+                                <a href="#!" class="btn"
+                                   v-for="help in helps"
+                                   v-bind:class="{disabled: isDisable(help)}"
+                                   @click="selectQuestionHelp(help)"
+                                >{{help.description}}</a>
+                            </div>
+                        </div>
+                        <div class="row" v-if="showSelectFriend">
+                            <div v-for="friend in user.friends" class="card-stacked">
+                                <div class="card-content">
+                                    <h6>{{friend.name}}</h6>
+                                    <p>{{friend.description}}</p>
+                                    <p>Телефон: {{friend.phoneNumber}}</p>
+                                </div>
+                                <div class="card-action">
+                                    <a href="#"
+                                       v-on:click="callFriend(friend)"
+                                    >Позвонить</a>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="row">
+                            <div class="col s12 card-panel teal lighten-2" style="text-align: center">
+                                {{question.questionText}}
+                            </div>
+
+                            <div class="col s6">
+                                <a href="#!" style="float: right; width: 300px" class="waves-effect waves-light btn"
+                                   v-bind:class="{'light-green darken-4': isTrueAnswer(question.answers[0]),
+                                                  'deep-orange darken-4': isBadAnswer(question.answers[0])}"
+                                   @click="selectAnswer(question.id, question.answers[0].id)"
+                                   v-show="question.answers[0].isShow == null || question.answers[0].isShow == true"
+                                >{{question.answers[0].answerText}}</a>
+                                <h5 v-if="question.answers[0].peopleHelpPercent" style="float: right;">
+                                    {{question.answers[0].peopleHelpPercent}}%</h5>
+                            </div>
+
+                            <div class="col s6">
+                                <a href="#!" style="float: left; width: 300px" class="waves-effect waves-light btn"
+                                   v-bind:class="{'light-green darken-4': isTrueAnswer(question.answers[1]),
+                                                  'deep-orange darken-4': isBadAnswer(question.answers[1])}"
+                                   @click="selectAnswer(question.id, question.answers[1].id)"
+                                   v-show="question.answers[1].isShow == null || question.answers[1].isShow == true"
+                                >{{question.answers[1].answerText}}</a>
+                                <h5 v-if="question.answers[1].peopleHelpPercent">
+                                    {{question.answers[1].peopleHelpPercent}}%</h5>
+                            </div>
+                        </div>
+                        <div class="row">
+                            <div class="col s6">
+                                <a href="#!" style="float: right; width: 300px" class="waves-effect waves-light btn"
+                                   v-bind:class="{'light-green darken-4': isTrueAnswer(question.answers[2]),
+                                                  'deep-orange darken-4': isBadAnswer(question.answers[2])}"
+                                   @click="selectAnswer(question.id, question.answers[2].id)"
+                                   v-show="question.answers[2].isShow == null || question.answers[2].isShow == true"
+                                >{{question.answers[2].answerText}}</a>
+                                <h5 v-if="question.answers[2].peopleHelpPercent" style="float: right;">
+                                    {{question.answers[2].peopleHelpPercent}}%</h5>
+                            </div>
+                            <div class="col s6">
+                                <a href="#!" style="float: left; width: 300px" class="waves-effect waves-light btn"
+                                   v-bind:class="{'light-green darken-4': isTrueAnswer(question.answers[3]),
+                                                  'deep-orange darken-4': isBadAnswer(question.answers[3])}"
+                                   @click="selectAnswer(question.id, question.answers[3].id)"
+                                   v-show="question.answers[3].isShow == null || question.answers[3].isShow == true"
+                                >{{question.answers[3].answerText}}</a>
+                                <h5 v-if="question.answers[3].peopleHelpPercent">
+                                    {{question.answers[3].peopleHelpPercent}}%</h5>
+                            </div>
+                        </div>
+                        <div class="row">
+                            <div class="col s12">
+                                <h5 class="left-align">{{voiceOfPresenter}}</h5>
+                            </div>
+                        </div>
+                        <div class="row" style="text-align: center">
+                            <div v-if="!user.isEndGame && resultQuestion" class="col s12">
+                                <a href="#!" class="btn"
+                                   @click="getQuestion"
+                                >Далее</a>
+                            </div>
+                            <div v-else-if="resultQuestion" class="col s12">
+                                <h4>Игра окончена!!!</h4>
+                                <h5>Ваш выигрышь: {{user.currentAmount}}</h5>
+                                <a href="#!" class="btn"
+                                   @click="endGame"
+                                >Завершить</a>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="col s3">
+                    <ul class="collection">
+                        <li class="collection-item"
+                            v-for="amount in amounts"
+                            v-bind:class="{active: isActive(amount), yellow: isGuarantee(amount)}"
+                        >{{amount.value}}
+                        </li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+</body>
+</html>
+<script>
+    let MAX_HELP = 4;
+    let app = new Vue({
+        el: '#app',
+        data: {
+            name: '',
+            user: null,
+            amounts: null,
+            question: null,
+            helps: null,
+            selectAnswerIdTemp: null,
+            resultQuestion: false,
+            friendForm: {
+                name: '',
+                description: '',
+                phoneNumber: '',
+                close: false
+            },
+            showSelectFriend: false,
+            voiceOfPresenter: ''
+        },
+        methods: {
+            presenterSays(words) {
+                this.voiceOfPresenter = words;
+            },
+            endGame() {
+                this.clearCookie();
+                document.location.reload();
+            },
+            selectAnswer(questionId, answerId) {
+                this.selectAnswerIdTemp = answerId;
+                fetch('/question/' + questionId + "/" + answerId, {
+                    method: 'PUT',
+                    headers: {
+                        'Content-Type': 'application/json;charset=utf-8'
+                    }
+                })
+                    .then(response => response.json())
+                    .then(result => {
+                        this.question = result.question;
+                        this.user = result.user;
+                        this.resultQuestion = true;
+                    })
+            },
+            isContainsHelp(arr, help) {
+                for (const elem of arr) {
+                    if (elem.id === help.id) {
+                        return true;
+                    }
+                }
+                return false;
+            },
+            isBadAnswer(answer) {
+                return answer.isTrueAnswer != null && answer.isTrueAnswer === false && this.selectAnswerIdTemp === answer.id;
+            },
+            isTrueAnswer(answer) {
+                return answer.isTrueAnswer && answer.isTrueAnswer === true;
+            },
+            isDisable(help) {
+                if (this.user.usedHelps.length >= MAX_HELP) {
+                    return true;
+                }
+                return this.isContainsHelp(this.user.usedHelps, help);
+
+            },
+            isActive(amount) {
+                return amount.value === this.user.currentAmount;
+            },
+            isGuarantee(amount) {
+                return amount.value === this.user.guaranteeAmount;
+            },
+            endAddFriend() {
+                this.friendForm.close = true;
+            },
+            callFriend(friend) {
+                this.presenterSays("Звоним другу" + friend.name + " по номеру телефона: " + friend.phoneNumber + ". Он " + friend.description + " и должен в этом разбираться...");
+                fetch('/friend/' + friend.id + "/needHelp/" + this.question.id, {
+                    method: 'PUT',
+                    headers: {
+                        'Content-Type': 'application/json;charset=utf-8'
+                    }
+                })
+                    .then(response => response.json())
+                    .then(result => {
+                        this.question = result.question;
+                        for (const answer of this.question.answers) {
+                            if (answer.isFriendChoice === true) {
+                                this.presenterSays("Я думаю это " + answer.answerText);
+                            }
+                        }
+                        this.user = result.user;
+                    });
+            },
+            addFriend() {
+                if (this.friendForm.name !== '' && this.friendForm.phoneNumber !== '') {
+                    let friendForm = {
+                        name: this.friendForm.name,
+                        description: this.friendForm.description,
+                        phoneNumber: this.friendForm.phoneNumber
+                    }
+                    fetch('/friend', {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json;charset=utf-8'
+                        },
+                        body: JSON.stringify(friendForm)
+                    })
+                        .then(response => response.json())
+                        .then(result => {
+                            this.user = result;
+                            this.friendForm.name = '';
+                            this.friendForm.description = '';
+                            this.friendForm.phoneNumber = '';
+                            if (this.user.friends.length >= 5) {
+                                this.friendForm.close = true;
+                            }
+                        });
+                }
+            },
+            login() {
+                if (this.name !== '') {
+                    let loginForm = {
+                        login: this.name
+                    }
+                    fetch('/login', {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json;charset=utf-8'
+                        },
+                        body: JSON.stringify(loginForm)
+                    })
+                        .then(response => response.json())
+                        .then(result => {
+                            this.user = result;
+                            this.getQuestion();
+                        })
+                }
+            },
+            selectQuestionHelp(help) {
+                if (help.name === 'call_friend') {
+                    this.showSelectFriend = true;
+                } else {
+                    fetch('/question/' + this.question.id + '/activateHelp/' + help.id, {
+                        method: 'PUT',
+                        headers: {
+                            'Content-Type': 'application/json;charset=utf-8'
+                        }
+                    })
+                        .then(response => response.json())
+                        .then(result => {
+                            this.question = result.question;
+                            this.user = result.user;
+                        });
+                }
+
+            },
+            selectGuaranteeAmount(id) {
+                fetch('/user/selectGuaranteeAmount/' + id, {
+                    method: 'PUT',
+                    headers: {
+                        'Content-Type': 'application/json;charset=utf-8'
+                    }
+                })
+                    .then(response => response.json())
+                    .then(result => {
+                        this.user = result;
+                    })
+            },
+            getQuestion() {
+                this.showSelectFriend = false;
+                this.voiceOfPresenter = '';
+                fetch('/question').then(response => response.json()).then(result => {
+                    this.question = result;
+                });
+                this.resultQuestion = false;
+            },
+            getHelps() {
+                fetch('/help').then(response => response.json()).then(result => {
+                    this.helps = result;
+                });
+            },
+            clearCookie() {
+                document.cookie = "Auth-Token=''; path=/; expires=Tue, 31 Dec 2020 03:14:07 GMT"
+            }
+        },
+        created() {
+            this.clearCookie();
+        },
+        mounted() {
+            fetch('/amount').then(response => response.json()).then(result => {
+                this.amounts = result;
+            });
+            this.getHelps();
+        }
+    })
+</script>
